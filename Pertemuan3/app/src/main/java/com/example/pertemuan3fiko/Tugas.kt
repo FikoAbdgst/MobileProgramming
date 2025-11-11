@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -25,41 +25,41 @@ import androidx.compose.ui.unit.sp
 import com.example.pertemuan3fiko.ui.theme.Pertemuan3FikoTheme
 
 @Composable
-fun KartuIdentitasMahasiswa(){
-    Box(
+fun KartuIdentitasMahasiswa(){ // Fungsi composable untuk menampilkan kartu identitas mahasiswa
+    Box( // Kontainer utama untuk menampung elemen-elemen lain secara tumpuk
         modifier = Modifier
-            .fillMaxWidth()
-            .background(
+            .fillMaxWidth() // Lebar Box memenuhi layar
+            .background( // Memberi background gradasi vertikal
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color(0xFF1A1A2E),
-                        Color(0xFF16213E)
+                        Color(0xFFBF092F), // Warna atas
+                        Color(0xFF16213E)  // Warna bawah
                     )
                 )
             )
-            .padding(20.dp),
-        contentAlignment = Alignment.TopCenter
+            .padding(20.dp), // Jarak tepi luar Box
+        contentAlignment = Alignment.TopCenter // Posisi isi di tengah atas
     ) {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+        Card( // Membuat kartu sebagai wadah utama data mahasiswa
+            modifier = Modifier.fillMaxWidth(), // Kartu selebar layar
+            shape = RoundedCornerShape(16.dp), // Sudut kartu melengkung 16dp
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp), // Memberi efek bayangan
             colors = CardDefaults.cardColors(
-                containerColor = Color(0xFF0F3460)
+                containerColor = Color(0xFF0F3460) // Warna latar kartu
             )
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.padding(24.dp)
+            Column( // Menyusun elemen di dalam kartu secara vertikal
+                horizontalAlignment = Alignment.CenterHorizontally, // Rata tengah horizontal
+                modifier = Modifier.padding(24.dp) // Jarak isi dari tepi kartu
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.foto_mahasiswa),
+                Image( // Menampilkan foto mahasiswa
+                    painter = painterResource(id = R.drawable.foto_mahasiswa), // Gambar dari resource
                     contentDescription = "Foto Mahasiswa",
                     modifier = Modifier
-                        .width(100.dp)
-                        .height(130.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .border(
+                        .width(100.dp) // Lebar gambar 100dp
+                        .height(130.dp) // Tinggi gambar 130dp
+                        .clip(RoundedCornerShape(12.dp)) // Gambar dipotong sudut melengkung
+                        .border( // Memberi garis tepi gradasi pada gambar
                             width = 2.dp,
                             brush = Brush.linearGradient(
                                 colors = listOf(
@@ -69,20 +69,20 @@ fun KartuIdentitasMahasiswa(){
                             ),
                             shape = RoundedCornerShape(12.dp)
                         ),
-                    contentScale = ContentScale.Crop
+                    contentScale = ContentScale.Crop // Menyesuaikan gambar agar proporsional dan memenuhi area
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(16.dp)) // Jarak vertikal antar elemen
 
-                Text(
+                Text( // Teks judul kartu
                     text = "KARTU MAHASISWA",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF00D9FF),
-                    letterSpacing = 2.sp
+                    letterSpacing = 2.sp // Jarak antar huruf
                 )
 
-                Divider(
+                HorizontalDivider(
                     modifier = Modifier
                         .width(100.dp)
                         .padding(vertical = 12.dp),
@@ -90,27 +90,27 @@ fun KartuIdentitasMahasiswa(){
                     color = Color(0xFF00D9FF).copy(alpha = 0.5f)
                 )
 
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    horizontalAlignment = Alignment.Start,
+                Column( // Kolom berisi data identitas
+                    verticalArrangement = Arrangement.spacedBy(12.dp), // Jarak antar baris 12dp
+                    horizontalAlignment = Alignment.Start, // Isi rata kiri
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Row {
+                    Row { // Baris untuk data nama
                         Text(
-                            text = "Nama:",
+                            text = "Nama:", // Label
                             fontWeight = FontWeight.SemiBold,
                             color = Color(0xFFB8B8D1),
                             fontSize = 14.sp,
-                            modifier = Modifier.width(100.dp)
+                            modifier = Modifier.width(100.dp) // Lebar tetap agar rapi
                         )
                         Text(
-                            text = "Fiko Abdigusti",
+                            text = "Fiko Abdigusti", // Nilai data
                             textAlign = TextAlign.Start,
                             color = Color(0xFFE8E8F0),
                             fontSize = 14.sp
                         )
                     }
-                    Row {
+                    Row { // Baris untuk NIM
                         Text(
                             text = "NIM:",
                             fontWeight = FontWeight.SemiBold,
@@ -124,7 +124,7 @@ fun KartuIdentitasMahasiswa(){
                             fontSize = 14.sp
                         )
                     }
-                    Row {
+                    Row { // Baris untuk jurusan
                         Text(
                             text = "Jurusan:",
                             fontWeight = FontWeight.SemiBold,
@@ -138,7 +138,7 @@ fun KartuIdentitasMahasiswa(){
                             fontSize = 14.sp
                         )
                     }
-                    Row {
+                    Row { // Baris untuk universitas
                         Text(
                             text = "Universitas:",
                             fontWeight = FontWeight.SemiBold,
@@ -157,6 +157,7 @@ fun KartuIdentitasMahasiswa(){
         }
     }
 }
+
 
 @Preview(showBackground = true)
 @Composable
