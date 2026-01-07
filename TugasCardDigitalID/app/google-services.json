@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "857835966798",
+    "project_id": "tugascarddigitalid",
+    "storage_bucket": "tugascarddigitalid.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:857835966798:android:be8aa6aecb816c542d0e1f",
+        "android_client_info": {
+          "package_name": "com.example.tugascarddigitalid"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA93OQ1ivxCTT5rDFvfCRpphX8dh0Mbh7o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
