@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "902808102342",
+    "project_id": "tugaspert10-8120f",
+    "storage_bucket": "tugaspert10-8120f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:902808102342:android:ecdb5296055cd611b43ec7",
+        "android_client_info": {
+          "package_name": "com.example.tugaspert10"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCV2W_yfj7AhaoSNufFZuEgYPC5jtTdkeM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

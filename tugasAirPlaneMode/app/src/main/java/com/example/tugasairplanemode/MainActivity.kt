@@ -29,6 +29,8 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     Box(
+
+                        
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
                             .fillMaxSize()
