@@ -18,6 +18,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.tugascarddigitalid.data.GoogleAuthUIClient
+import com.example.tugascarddigitalid.presentation.profile.ProfileScreen
+import com.example.tugascarddigitalid.presentation.sign_in.SignInScreen
+import com.example.tugascarddigitalid.presentation.sign_in.SignInViewModel
+import com.example.tugascarddigitalid.ui.theme.TugasCardDigitalIDTheme
 import kotlinx.coroutines.launch
 
 
@@ -32,7 +36,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            TugasCardDigitalIDTheme{
+            TugasCardDigitalIDTheme(){
                Surface(
                    modifier = Modifier.fillMaxSize(),
                    color = MaterialTheme.colorScheme.background

@@ -19,8 +19,8 @@ class TodoViewModel : ViewModel() {
        }
     }
 
-    fun add(userId: String, title: String) = viewModelScope.launch {
-        repository.addTodo(userId, title)
+    fun add(userId: String, title: String, priority: String) = viewModelScope.launch {
+        repository.addTodo(userId, title, priority)
     }
     fun toggle(userId: String, todo: Todo) = viewModelScope.launch {
         repository.updateTodoStatus(userId, todo.id, !todo.isCompleted)

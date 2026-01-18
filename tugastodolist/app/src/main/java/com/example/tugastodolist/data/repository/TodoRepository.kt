@@ -28,13 +28,13 @@ class TodoRepository {
         awaitClose { subscription.remove() }
     }
 
-    suspend fun addTodo(userId: String, title: String) {
-        val todo = Todo(id = "", title = title)
+    suspend fun addTodo(userId: String, title: String, priority: String) {
+        val todo = Todo(id = "", title = title, priority = priority)
         getTodoCollection(userId).add(todo).await()
     }
 
-    suspend fun updateTodoStatus(userId: String, todoId: String, isComplete: Boolean) {
-        getTodoCollection(userId).document(todoId).update("isComplete", isComplete).await()
+    suspend fun updateTodoStatus(userId: String, todoId: String, isCompleted: Boolean) {
+        getTodoCollection(userId).document(todoId).update("isCompleted", isCompleted).await()
     }
 
     suspend fun updateTodoTitle(userId: String, todoId: String, newTitle: String) {
