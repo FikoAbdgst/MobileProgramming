@@ -16,6 +16,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.tugastodolist.data.model.UserData
@@ -30,7 +32,7 @@ fun TodoScreen(
 ) {
     var todoText by remember { mutableStateOf("") }
     var selectedPriority by remember { mutableStateOf("Medium") }
-    var showPriorityMenu by remember { mutableStateOf(false) } // State untuk menu dropdown
+    var showPriorityMenu by remember { mutableStateOf(false) }
 
     val todos by viewModel.todos.collectAsState()
 
@@ -41,18 +43,25 @@ fun TodoScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("TodoList") },
+                title = {
+                    Text("My Tasks", fontWeight = FontWeight.Bold)
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                ),
                 actions = {
                     userData?.let {
-                        Text(it.username ?: "", style = MaterialTheme.typography.bodySmall)
-                        Spacer(Modifier.width(8.dp))
                         AsyncImage(
                             model = it.profilePictureUrl,
-                            contentDescription = null,
-                            modifier = Modifier.size(35.dp).clip(CircleShape)
+                            contentDescription = "Profile",
+                            modifier = Modifier
+                                .padding(end = 8.dp)
+                                .size(36.dp)
+                                .clip(CircleShape)
                         )
                         IconButton(onClick = onSignOut) {
-                            Text("Out", style = MaterialTheme.typography.labelSmall)
+                            Text("Logout", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
                         }
                     }
                 }
@@ -65,119 +74,150 @@ fun TodoScreen(
                 .fillMaxSize()
                 .padding(16.dp)
         ) {
-            // BAGIAN INPUT DIUBAH MENJADI SINGLE LINE (ROW)
-            Row(
+            // --- INPUT AREA (CARD) ---
+            Card(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
-                // 1. Input Text (Mengisi sisa ruang)
-                TextField(
-                    value = todoText,
-                    onValueChange = { todoText = it },
-                    modifier = Modifier.weight(1f),
-                    placeholder = { Text("Tugas baru...") },
-                    singleLine = true,
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        disabledContainerColor = Color.Transparent,
-                        focusedIndicatorColor = MaterialTheme.colorScheme.primary,
-                        unfocusedIndicatorColor = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                )
-
-                // 2. Pilihan Priority (Dropdown Hemat Tempat)
-                Box {
-                    TextButton(onClick = { showPriorityMenu = true }) {
-                        Text(
-                            text = selectedPriority,
-                            color = getPriorityColor(selectedPriority),
-                            style = MaterialTheme.typography.labelLarge
-                        )
-                    }
-                    DropdownMenu(
-                        expanded = showPriorityMenu,
-                        onDismissRequest = { showPriorityMenu = false }
-                    ) {
-                        listOf("High", "Medium", "Low").forEach { priority ->
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        text = priority,
-                                        color = getPriorityColor(priority)
-                                    )
-                                },
-                                onClick = {
-                                    selectedPriority = priority
-                                    showPriorityMenu = false
-                                }
-                            )
-                        }
-                    }
-                }
-
-                // 3. Tombol Tambah (Icon Button)
-                IconButton(
-                    onClick = {
-                        if (todoText.isNotBlank()) {
-                            userData?.userId?.let {
-                                viewModel.add(it, todoText, selectedPriority)
-                            }
-                            todoText = ""
-                            selectedPriority = "Medium"
-                        }
-                    },
-                    colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
-                    )
+                Row(
+                    modifier = Modifier
+                        .padding(8.dp)
+                        .fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = "Tambah")
+                    TextField(
+                        value = todoText,
+                        onValueChange = { todoText = it },
+                        modifier = Modifier.weight(1f),
+                        placeholder = { Text("Tugas baru...") },
+                        singleLine = true,
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent
+                        )
+                    )
+
+                    // Priority Chip
+                    Box {
+                        AssistChip(
+                            onClick = { showPriorityMenu = true },
+                            label = { Text(selectedPriority) },
+                            colors = AssistChipDefaults.assistChipColors(
+                                labelColor = getPriorityColor(selectedPriority)
+                            )
+                        )
+                        DropdownMenu(
+                            expanded = showPriorityMenu,
+                            onDismissRequest = { showPriorityMenu = false }
+                        ) {
+                            listOf("High", "Medium", "Low").forEach { priority ->
+                                DropdownMenuItem(
+                                    text = { Text(priority, color = getPriorityColor(priority)) },
+                                    onClick = {
+                                        selectedPriority = priority
+                                        showPriorityMenu = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(4.dp))
+
+                    IconButton(
+                        onClick = {
+                            if (todoText.isNotBlank()) {
+                                userData?.userId?.let {
+                                    viewModel.add(it, todoText, selectedPriority)
+                                }
+                                todoText = ""
+                                selectedPriority = "Medium"
+                            }
+                        },
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "Add")
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Daftar Tugas
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
-                items(todos) { todo ->
-                    ListItem(
-                        modifier = Modifier
-                            .clickable { onNavigateToEdit(todo.id) },
-                        headlineContent = {
-                            Text(
-                                text = todo.title,
-                                style = if (todo.isCompleted)
-                                    MaterialTheme.typography.bodyLarge.copy(textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough)
-                                else MaterialTheme.typography.bodyLarge
-                            )
+            // --- LIST TUGAS ---
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(todos, key = { it.id }) { todo ->
+                    TodoItemCard(
+                        todo = todo,
+                        onItemClick = { onNavigateToEdit(todo.id) },
+                        onToggle = {
+                            userData?.userId?.let { uid -> viewModel.toggle(uid, todo) }
                         },
-                        overlineContent = {
-                            Text(
-                                text = todo.priority,
-                                color = getPriorityColor(todo.priority),
-                                style = MaterialTheme.typography.labelSmall
-                            )
-                        },
-                        leadingContent = {
-                            Checkbox(
-                                checked = todo.isCompleted,
-                                onCheckedChange = { _ ->
-                                    userData?.userId?.let { uid -> viewModel.toggle(uid, todo) }
-                                }
-                            )
-                        },
-                        trailingContent = {
-                            IconButton(onClick = {
-                                userData?.userId?.let { uid -> viewModel.delete(uid, todo.id) }
-                            }) {
-                                Icon(Icons.Default.Delete, contentDescription = null)
-                            }
+                        onDelete = {
+                            userData?.userId?.let { uid -> viewModel.delete(uid, todo.id) }
                         }
                     )
-                    HorizontalDivider()
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun TodoItemCard(
+    todo: com.example.tugastodolist.data.model.Todo,
+    onItemClick: () -> Unit,
+    onToggle: (Boolean) -> Unit,
+    onDelete: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth().clickable { onItemClick() },
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Indikator Warna Prioritas
+            Box(
+                modifier = Modifier
+                    .size(width = 4.dp, height = 40.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(getPriorityColor(todo.priority))
+            )
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Checkbox(checked = todo.isCompleted, onCheckedChange = onToggle)
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = todo.title,
+                    style = if (todo.isCompleted)
+                        MaterialTheme.typography.bodyLarge.copy(
+                            textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough,
+                            color = Color.Gray
+                        )
+                    else MaterialTheme.typography.bodyLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = todo.priority,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = getPriorityColor(todo.priority)
+                )
+            }
+
+            IconButton(onClick = onDelete) {
+                Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
             }
         }
     }
@@ -185,9 +225,9 @@ fun TodoScreen(
 
 fun getPriorityColor(priority: String): Color {
     return when (priority) {
-        "High" -> Color.Red
-        "Medium" -> Color(0xFFFFA500) // Orange
-        "Low" -> Color.Green
+        "High" -> Color(0xFFE53935)
+        "Medium" -> Color(0xFFFB8C00)
+        "Low" -> Color(0xFF43A047)
         else -> Color.Gray
     }
 }

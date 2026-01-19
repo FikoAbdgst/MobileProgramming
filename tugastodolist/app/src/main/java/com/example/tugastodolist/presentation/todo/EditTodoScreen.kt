@@ -1,18 +1,24 @@
 package com.example.tugastodolist.presentation.todo
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.tugastodolist.data.model.Todo
-import java.text.SimpleDateFormat
-import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -20,99 +26,120 @@ fun EditTodoScreen(
     todo: Todo,
     onSave: (String, String) -> Unit,
     onBack: () -> Unit
-){
+) {
     var title by remember { mutableStateOf(todo.title) }
-    var selectedPriority by remember { mutableStateOf(todo.priority) }
-    var showPriorityMenu by remember { mutableStateOf(false) } // State untuk menu dropdown
-
-    val sdf = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
-    val dateString = sdf.format(Date(todo.createdAt))
+    var priority by remember { mutableStateOf(todo.priority) }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title =  { Text("Edit Tugas") },
+                title = { Text("Edit Tugas", fontWeight = FontWeight.SemiBold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        // Menggunakan ikon back standar
                         Icon(Icons.Default.ArrowBack, contentDescription = "Kembali")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.White,
+                    titleContentColor = Color.Black
+                )
             )
-        }
+        },
+        containerColor = Color(0xFFF5F5F5) // Background abu-abu muda
     ) { padding ->
         Column(
             modifier = Modifier
                 .padding(padding)
-                .padding(16.dp)
                 .fillMaxSize()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // BAGIAN EDIT (SINGLE LINE: Judul + Priority + Save)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+
+            // Kartu Form Edit
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                // 1. Input Judul (Mengisi sisa ruang)
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    label = { Text("Judul") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true
-                )
+                Column(modifier = Modifier.padding(24.dp)) {
 
-                // 2. Pilihan Priority (Dropdown Hemat Tempat)
-                Box {
-                    TextButton(onClick = { showPriorityMenu = true }) {
-                        Text(
-                            text = selectedPriority,
-                            color = getPriorityColor(selectedPriority),
-                            style = MaterialTheme.typography.labelLarge
+                    // Input Judul
+                    Text("Judul Tugas", fontSize = 14.sp, color = Color.Gray, fontWeight = FontWeight.Medium)
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    OutlinedTextField(
+                        value = title,
+                        onValueChange = { title = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFF1E88E5),
+                            unfocusedBorderColor = Color.LightGray
                         )
-                    }
-                    DropdownMenu(
-                        expanded = showPriorityMenu,
-                        onDismissRequest = { showPriorityMenu = false }
-                    ) {
-                        listOf("High", "Medium", "Low").forEach { priority ->
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        text = priority,
-                                        color = getPriorityColor(priority)
-                                    )
-                                },
-                                onClick = {
-                                    selectedPriority = priority
-                                    showPriorityMenu = false
-                                }
-                            )
-                        }
-                    }
-                }
-
-                // 3. Tombol Simpan (Icon Button)
-                IconButton(
-                    onClick = { onSave(title, selectedPriority) },
-                    enabled = title.isNotBlank(),
-                    colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
                     )
-                ) {
-                    Icon(Icons.Default.Check, contentDescription = "Simpan")
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Pilihan Prioritas (Tombol Warna)
+                    Text("Prioritas", fontSize = 14.sp, color = Color.Gray, fontWeight = FontWeight.Medium)
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        PriorityButton("High", Color(0xFFE53935), priority) { priority = "High" }
+                        PriorityButton("Medium", Color(0xFFFB8C00), priority) { priority = "Medium" }
+                        PriorityButton("Low", Color(0xFF43A047), priority) { priority = "Low" }
+                    }
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
-            // Info Tanggal di bawahnya
-            Text(
-                text = "Dibuat pada: $dateString",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            // Tombol Simpan Besar
+            Button(
+                onClick = { onSave(title, priority) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(54.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E88E5))
+            ) {
+                Icon(Icons.Default.Check, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Simpan Perubahan", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            }
         }
+    }
+}
+
+// Komponen Kecil untuk Tombol Prioritas
+@Composable
+fun RowScope.PriorityButton(
+    label: String,
+    color: Color,
+    selectedPriority: String,
+    onClick: () -> Unit
+) {
+    val isSelected = selectedPriority == label
+
+    Box(
+        modifier = Modifier
+            .weight(1f)
+            .height(40.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(if (isSelected) color else Color.Transparent)
+            .border(1.dp, if (isSelected) color else Color.LightGray, RoundedCornerShape(8.dp))
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = label,
+            color = if (isSelected) Color.White else Color.Gray,
+            fontWeight = FontWeight.Medium,
+            fontSize = 14.sp
+        )
     }
 }
