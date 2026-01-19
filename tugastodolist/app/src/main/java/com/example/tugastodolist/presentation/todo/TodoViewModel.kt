@@ -26,8 +26,8 @@ class TodoViewModel : ViewModel() {
         repository.updateTodoStatus(userId, todo.id, !todo.isCompleted)
     }
 
-    fun updateTitle(userId: String, todoId: String, newTitle: String) = viewModelScope.launch {
-        repository.updateTodoTitle(userId, todoId, newTitle)
+    fun updateTodo(userId: String, todoId: String, newTitle: String, newPriority: String) = viewModelScope.launch {
+        repository.updateTodo(userId, todoId, newTitle, newPriority)
     }
     fun delete(userId: String, todoId: String) = viewModelScope.launch {
         repository.deleteTodo(userId,todoId)

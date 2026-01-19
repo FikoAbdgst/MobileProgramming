@@ -110,7 +110,7 @@ class MainActivity : ComponentActivity() {
                             route = "edit_todo/{todoId}",
                             arguments = listOf(navArgument("todoId"){ type = NavType.StringType})
                         ){
-                            backStackEntry ->
+                                backStackEntry ->
                             val todoId = backStackEntry.arguments?.getString("todoId") ?: ""
                             val todos by todoViewModel.todos.collectAsState()
                             val todo = todos.find { it.id == todoId }
@@ -119,8 +119,8 @@ class MainActivity : ComponentActivity() {
                             todo?.let {
                                 EditTodoScreen(
                                     todo = it,
-                                    onSave = { newTitle ->
-                                        todoViewModel.updateTitle(userId, todoId, newTitle)
+                                    onSave = { newTitle, newPriority ->
+                                        todoViewModel.updateTodo(userId, todoId, newTitle, newPriority)
                                         navController.popBackStack()
                                     },
                                     onBack = { navController.popBackStack() }

@@ -37,8 +37,12 @@ class TodoRepository {
         getTodoCollection(userId).document(todoId).update("isCompleted", isCompleted).await()
     }
 
-    suspend fun updateTodoTitle(userId: String, todoId: String, newTitle: String) {
-        getTodoCollection(userId).document(todoId).update("title", newTitle).await()
+    suspend fun updateTodo(userId: String, todoId: String, newTitle: String, newPriority: String) {
+        val updates = mapOf(
+            "title" to newTitle,
+            "priority" to newPriority
+        )
+        getTodoCollection(userId).document(todoId).update(updates).await()
     }
     suspend fun deleteTodo(userId: String, todoId: String) {
         getTodoCollection(userId).document(todoId).delete().await()
