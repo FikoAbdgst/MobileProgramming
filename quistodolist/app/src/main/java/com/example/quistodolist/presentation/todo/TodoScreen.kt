@@ -82,7 +82,7 @@ fun TodoScreen(
                 title = {
                     Column {
                         Text(
-                            "TaskHub",
+                            "Noteapp",
                             fontWeight = FontWeight.Bold,
                             fontSize = 20.sp,
                             color = Color(0xFF1A73E8)
@@ -314,7 +314,7 @@ fun TodoScreen(
                     LazyColumn(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        items(todos, key = { it.id }) { todo ->
+                        items(todostodos, key = { it.id }) { todo ->
                             TodoItemCard(
                                 todo = todo,
                                 onItemClick = { onNavigateToEdit(todo.id) },
