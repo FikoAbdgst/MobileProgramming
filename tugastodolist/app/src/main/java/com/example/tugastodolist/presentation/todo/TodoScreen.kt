@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,8 +18,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.tugastodolist.data.model.UserData
 
@@ -44,11 +47,25 @@ fun TodoScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text("My Tasks", fontWeight = FontWeight.Bold)
+                    Column {
+                        Text(
+                            "TaskHub",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp,
+                            color = Color(0xFF1A73E8)
+                        )
+                        userData?.username?.let {
+                            Text(
+                                "Hello, $it",
+                                fontSize = 12.sp,
+                                color = Color(0xFF5F6368),
+                                fontWeight = FontWeight.Normal
+                            )
+                        }
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    containerColor = Color.White
                 ),
                 actions = {
                     userData?.let {
@@ -57,112 +74,226 @@ fun TodoScreen(
                             contentDescription = "Profile",
                             modifier = Modifier
                                 .padding(end = 8.dp)
-                                .size(36.dp)
+                                .size(40.dp)
                                 .clip(CircleShape)
+                                .clickable { onSignOut() }
                         )
-                        IconButton(onClick = onSignOut) {
-                            Text("Logout", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
-                        }
                     }
                 }
             )
-        }
+        },
+        containerColor = Color(0xFFF8F9FA)
     ) { padding ->
         Column(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .padding(16.dp)
         ) {
-            // --- INPUT AREA (CARD) ---
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            // Header Section
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.White)
+                    .padding(horizontal = 20.dp, vertical = 16.dp)
             ) {
-                Row(
-                    modifier = Modifier
-                        .padding(8.dp)
-                        .fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    TextField(
-                        value = todoText,
-                        onValueChange = { todoText = it },
-                        modifier = Modifier.weight(1f),
-                        placeholder = { Text("Tugas baru...") },
-                        singleLine = true,
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = Color.Transparent,
-                            unfocusedContainerColor = Color.Transparent,
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent
-                        )
-                    )
-
-                    // Priority Chip
-                    Box {
-                        AssistChip(
-                            onClick = { showPriorityMenu = true },
-                            label = { Text(selectedPriority) },
-                            colors = AssistChipDefaults.assistChipColors(
-                                labelColor = getPriorityColor(selectedPriority)
-                            )
-                        )
-                        DropdownMenu(
-                            expanded = showPriorityMenu,
-                            onDismissRequest = { showPriorityMenu = false }
-                        ) {
-                            listOf("High", "Medium", "Low").forEach { priority ->
-                                DropdownMenuItem(
-                                    text = { Text(priority, color = getPriorityColor(priority)) },
-                                    onClick = {
-                                        selectedPriority = priority
-                                        showPriorityMenu = false
-                                    }
-                                )
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.width(4.dp))
-
-                    IconButton(
-                        onClick = {
-                            if (todoText.isNotBlank()) {
-                                userData?.userId?.let {
-                                    viewModel.add(it, todoText, selectedPriority)
-                                }
-                                todoText = ""
-                                selectedPriority = "Medium"
-                            }
-                        },
-                        colors = IconButtonDefaults.filledIconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.primary
-                        )
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = "Add")
-                    }
-                }
+                Text(
+                    text = "My Tasks",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF202124)
+                )
+                Text(
+                    text = "${todos.count { !it.isCompleted }} tasks pending",
+                    fontSize = 14.sp,
+                    color = Color(0xFF5F6368),
+                    modifier = Modifier.padding(top = 4.dp)
+                )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // --- LIST TUGAS ---
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 20.dp)
             ) {
-                items(todos, key = { it.id }) { todo ->
-                    TodoItemCard(
-                        todo = todo,
-                        onItemClick = { onNavigateToEdit(todo.id) },
-                        onToggle = {
-                            userData?.userId?.let { uid -> viewModel.toggle(uid, todo) }
-                        },
-                        onDelete = {
-                            userData?.userId?.let { uid -> viewModel.delete(uid, todo.id) }
+                // Input Card
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = todoText,
+                            onValueChange = { todoText = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            placeholder = {
+                                Text(
+                                    "Add a new task...",
+                                    color = Color(0xFF9AA0A6)
+                                )
+                            },
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Color(0xFF1A73E8),
+                                unfocusedBorderColor = Color(0xFFDADCE0),
+                                focusedContainerColor = Color.White,
+                                unfocusedContainerColor = Color.White
+                            ),
+                            shape = RoundedCornerShape(8.dp)
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Priority Selector
+                            Box {
+                                OutlinedButton(
+                                    onClick = { showPriorityMenu = true },
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        containerColor = getPriorityBackgroundColor(selectedPriority)
+                                    ),
+                                    border = ButtonDefaults.outlinedButtonBorder.copy(
+                                        width = 0.dp
+                                    ),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .background(
+                                                getPriorityColor(selectedPriority),
+                                                CircleShape
+                                            )
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        selectedPriority,
+                                        color = getPriorityColor(selectedPriority),
+                                        fontWeight = FontWeight.Medium,
+                                        fontSize = 14.sp
+                                    )
+                                }
+                                DropdownMenu(
+                                    expanded = showPriorityMenu,
+                                    onDismissRequest = { showPriorityMenu = false },
+                                    modifier = Modifier.background(Color.White)
+                                ) {
+                                    listOf("High", "Medium", "Low").forEach { priority ->
+                                        DropdownMenuItem(
+                                            text = {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(8.dp)
+                                                            .background(
+                                                                getPriorityColor(priority),
+                                                                CircleShape
+                                                            )
+                                                    )
+                                                    Spacer(modifier = Modifier.width(12.dp))
+                                                    Text(
+                                                        priority,
+                                                        color = Color(0xFF202124),
+                                                        fontSize = 14.sp
+                                                    )
+                                                }
+                                            },
+                                            onClick = {
+                                                selectedPriority = priority
+                                                showPriorityMenu = false
+                                            },
+                                            colors = MenuDefaults.itemColors(
+                                                textColor = Color(0xFF202124)
+                                            )
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Add Button
+                            Button(
+                                onClick = {
+                                    if (todoText.isNotBlank()) {
+                                        userData?.userId?.let {
+                                            viewModel.add(it, todoText, selectedPriority)
+                                        }
+                                        todoText = ""
+                                        selectedPriority = "Medium"
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFF1A73E8)
+                                ),
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Add,
+                                    contentDescription = "Add",
+                                    modifier = Modifier.size(18.dp),
+                                    tint = Color.White
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Add Task", fontWeight = FontWeight.Medium, color = Color.White)
+                            }
                         }
-                    )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Tasks List
+                if (todos.isEmpty()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 48.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "📝",
+                            fontSize = 48.sp
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "No tasks yet",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color(0xFF5F6368)
+                        )
+                        Text(
+                            text = "Add your first task to get started",
+                            fontSize = 14.sp,
+                            color = Color(0xFF9AA0A6),
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
+                } else {
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(todos, key = { it.id }) { todo ->
+                            TodoItemCard(
+                                todo = todo,
+                                onItemClick = { onNavigateToEdit(todo.id) },
+                                onToggle = {
+                                    userData?.userId?.let { uid -> viewModel.toggle(uid, todo) }
+                                },
+                                onDelete = {
+                                    userData?.userId?.let { uid -> viewModel.delete(uid, todo.id) }
+                                }
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -177,47 +308,77 @@ fun TodoItemCard(
     onDelete: () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth().clickable { onItemClick() },
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onItemClick() },
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        shape = RoundedCornerShape(12.dp)
     ) {
         Row(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Indikator Warna Prioritas
-            Box(
-                modifier = Modifier
-                    .size(width = 4.dp, height = 40.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(getPriorityColor(todo.priority))
-            )
+            // Custom Checkbox
+            IconButton(
+                onClick = { onToggle(!todo.isCompleted) },
+                modifier = Modifier.size(40.dp)
+            ) {
+                Icon(
+                    imageVector = if (todo.isCompleted) Icons.Outlined.CheckCircle else Icons.Outlined.CheckCircle,
+                    contentDescription = "Toggle",
+                    tint = if (todo.isCompleted) Color(0xFF1A73E8) else Color(0xFFDADCE0),
+                    modifier = Modifier.size(24.dp)
+                )
+            }
 
             Spacer(modifier = Modifier.width(12.dp))
-
-            Checkbox(checked = todo.isCompleted, onCheckedChange = onToggle)
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = todo.title,
-                    style = if (todo.isCompleted)
-                        MaterialTheme.typography.bodyLarge.copy(
-                            textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough,
-                            color = Color.Gray
-                        )
-                    else MaterialTheme.typography.bodyLarge,
-                    maxLines = 1,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = if (todo.isCompleted) Color(0xFF9AA0A6) else Color(0xFF202124),
+                    textDecoration = if (todo.isCompleted) TextDecoration.LineThrough else TextDecoration.None,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
-                Text(
-                    text = todo.priority,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = getPriorityColor(todo.priority)
-                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .background(
+                                getPriorityColor(todo.priority),
+                                CircleShape
+                            )
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = todo.priority,
+                        fontSize = 12.sp,
+                        color = getPriorityColor(todo.priority),
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
 
-            IconButton(onClick = onDelete) {
-                Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
+            // Delete Button
+            IconButton(
+                onClick = onDelete,
+                modifier = Modifier.size(40.dp)
+            ) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = "Delete",
+                    tint = Color(0xFF9AA0A6),
+                    modifier = Modifier.size(20.dp)
+                )
             }
         }
     }
@@ -225,9 +386,18 @@ fun TodoItemCard(
 
 fun getPriorityColor(priority: String): Color {
     return when (priority) {
-        "High" -> Color(0xFFE53935)
-        "Medium" -> Color(0xFFFB8C00)
-        "Low" -> Color(0xFF43A047)
-        else -> Color.Gray
+        "High" -> Color(0xFFEA4335)
+        "Medium" -> Color(0xFFFBBC04)
+        "Low" -> Color(0xFF34A853)
+        else -> Color(0xFF9AA0A6)
+    }
+}
+
+fun getPriorityBackgroundColor(priority: String): Color {
+    return when (priority) {
+        "High" -> Color(0xFFFEF0EF)
+        "Medium" -> Color(0xFFFEF7E0)
+        "Low" -> Color(0xFFE6F4EA)
+        else -> Color(0xFFF1F3F4)
     }
 }
