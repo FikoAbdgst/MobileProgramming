@@ -9,21 +9,15 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavHost
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -37,13 +31,11 @@ import com.example.quistodolist.presentation.todo.TodoScreen
 import com.example.quistodolist.presentation.todo.TodoViewModel
 import com.example.quistodolist.ui.theme.QuistodolistTheme
 import kotlinx.coroutines.launch
-import kotlin.getValue
 
 class MainActivity : ComponentActivity() {
     private val googleAuthUIClient by lazy {
         GoogleAuthUIClient(context = this)
     }
-
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -86,6 +78,7 @@ class MainActivity : ComponentActivity() {
                         }
                     ) {
 
+                        // --- SCREEN 1: SIGN IN ---
                         composable("sign_in") {
                             val viewModel = viewModel<SignInViewModel>()
                             val state by viewModel.state.collectAsStateWithLifecycle()
@@ -112,6 +105,7 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
+                        // --- SCREEN 2: TODO LIST ---
                         composable("todo_list") {
                             TodoScreen(
                                 userData = googleAuthUIClient.getSignedInUser(),
@@ -130,20 +124,24 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
+                        // --- SCREEN 3: EDIT TODO ---
                         composable(
                             route = "edit_todo/{todoId}",
                             arguments = listOf(navArgument("todoId") { type = NavType.StringType })
                         ) { backStackEntry ->
                             val todoId = backStackEntry.arguments?.getString("todoId") ?: ""
                             val todos by todoViewModel.todos.collectAsState()
+
+                            // Cari todo berdasarkan ID
                             val todo = todos.find { it.id == todoId }
                             val userId = googleAuthUIClient.getSignedInUser()?.userId ?: ""
 
                             todo?.let {
                                 EditTodoScreen(
                                     todo = it,
-                                    onSave = { newTitle, newPriority ->
-                                        todoViewModel.updateTodo(userId, todoId, newTitle, newPriority)
+                                    // PERBAIKAN DI SINI: Menambahkan parameter newCategory
+                                    onSave = { newTitle, newPriority, newCategory ->
+                                        todoViewModel.updateTodo(userId, todoId, newTitle, newPriority, newCategory)
                                         navController.popBackStack()
                                     },
                                     onBack = { navController.popBackStack() }
@@ -156,4 +154,3 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-

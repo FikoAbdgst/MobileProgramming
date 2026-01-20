@@ -5,8 +5,9 @@ import com.google.firebase.firestore.PropertyName
 data class Todo(
     val id: String = "",
     val title: String = "",
-
     val priority: String = "Medium",
+
+    val category: String = "Lainnya",
 
     @get:PropertyName("isCompleted")
     @set:PropertyName("isCompleted")
