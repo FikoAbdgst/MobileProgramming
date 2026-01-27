@@ -38,6 +38,7 @@ class CartViewModel : ViewModel() {
 
     fun addToCart(userId: String, product: Product, quantity: Int, onSuccess: () -> Unit) {
         viewModelScope.launch {
+            // Loading bisa tetap ada untuk operasi add to cart dari luar
             _isLoading.value = true
             try {
                 repository.addToCart(userId, product, quantity)
@@ -51,39 +52,68 @@ class CartViewModel : ViewModel() {
         }
     }
 
+    // UPDATE REALTIME: Optimistic Update tanpa Loading Full Screen
     fun increaseQuantity(userId: String, item: CartItem) {
         viewModelScope.launch {
+            // Update UI Lokal dulu (Optimistic)
+            val currentList = _cartItems.value.toMutableList()
+            val index = currentList.indexOfFirst { it.productId == item.productId }
+            if (index != -1) {
+                val updatedItem = item.copy(quantity = item.quantity + 1, totalPrice = (item.quantity + 1) * item.productPrice)
+                currentList[index] = updatedItem
+                _cartItems.value = currentList
+                calculateTotal(currentList)
+            }
+
+            // Lalu update ke Backend
             try {
                 val newQty = item.quantity + 1
                 repository.updateCartItemQuantity(userId, item.productId, newQty, item.productPrice)
-                loadCart(userId) // Reload UI
+                // Tidak perlu reload cart full jika sukses, karena lokal sudah update
             } catch (e: Exception) {
                 e.printStackTrace()
+                // Revert jika gagal (Opsional)
+                loadCart(userId)
             }
         }
     }
 
     fun decreaseQuantity(userId: String, item: CartItem) {
-        if (item.quantity <= 1) return // Cegah kurang dari 1
+        if (item.quantity <= 1) return
 
         viewModelScope.launch {
+            // Update UI Lokal dulu (Optimistic)
+            val currentList = _cartItems.value.toMutableList()
+            val index = currentList.indexOfFirst { it.productId == item.productId }
+            if (index != -1) {
+                val updatedItem = item.copy(quantity = item.quantity - 1, totalPrice = (item.quantity - 1) * item.productPrice)
+                currentList[index] = updatedItem
+                _cartItems.value = currentList
+                calculateTotal(currentList)
+            }
+
             try {
                 val newQty = item.quantity - 1
                 repository.updateCartItemQuantity(userId, item.productId, newQty, item.productPrice)
-                loadCart(userId)
             } catch (e: Exception) {
                 e.printStackTrace()
+                loadCart(userId)
             }
         }
     }
 
     fun deleteItem(userId: String, productId: Int) {
         viewModelScope.launch {
+            // Hapus lokal dulu
+            val currentList = _cartItems.value.filter { it.productId != productId }
+            _cartItems.value = currentList
+            calculateTotal(currentList)
+
             try {
                 repository.deleteCartItem(userId, productId)
-                loadCart(userId)
             } catch (e: Exception) {
                 e.printStackTrace()
+                loadCart(userId) // Revert jika gagal
             }
         }
     }

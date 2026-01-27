@@ -6,7 +6,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
@@ -31,6 +30,7 @@ import com.example.uasecom.data.model.Product
 import com.example.uasecom.presentation.cart.CartScreen
 import com.example.uasecom.presentation.cart.CartViewModel
 import com.example.uasecom.presentation.home.HomeScreen
+import com.example.uasecom.presentation.home.HomeViewModel
 import com.example.uasecom.presentation.home.ProductDetailSheet
 import com.example.uasecom.presentation.profile.ProfileScreen
 import com.example.uasecom.presentation.wishtlist.WishlistScreen
@@ -41,11 +41,15 @@ import kotlinx.coroutines.launch
 fun MainAppScreen(
     userData: UserData?,
     onSignOut: () -> Unit,
-    cartViewModel: CartViewModel = viewModel()
+    cartViewModel: CartViewModel = viewModel(),
+    homeViewModel: HomeViewModel = viewModel() // Tambahkan HomeViewModel
 ) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+
+    // State untuk HomeViewModel agar Modal tahu status wishlist
+    val homeUiState by homeViewModel.uiState.collectAsState()
 
     // State untuk Modal Detail Product
     var selectedProduct by remember { mutableStateOf<Product?>(null) }
@@ -60,18 +64,7 @@ fun MainAppScreen(
     val isBottomBarVisible = currentRoute != "cart" && !showDetailSheet
 
     Scaffold(
-        topBar = {
-            if (currentRoute != "cart") {
-                CenterAlignedTopAppBar(
-                    title = { Text("E-Commerce", fontWeight = FontWeight.Bold) },
-                    actions = {
-                        IconButton(onClick = { navController.navigate("cart") }) {
-                            Icon(Icons.Default.ShoppingCart, contentDescription = "Cart")
-                        }
-                    }
-                )
-            }
-        },
+        // TopBar DIHAPUS agar tidak Double (Karena Screen lain sudah punya TopBar sendiri)
         bottomBar = {
             if (currentRoute == "cart") {
                 CartBottomBar(
@@ -99,15 +92,15 @@ fun MainAppScreen(
             modifier = Modifier.padding(innerPadding)
         ) {
             composable("home") {
-                // PERBAIKAN DI SINI: Menambahkan argumen yang kurang
                 HomeScreen(
                     userData = userData,
                     onProductClick = { product ->
                         selectedProduct = product
                         showDetailSheet = true
                     },
-                    onCartClick = { navController.navigate("cart") }, // Navigasi ke Cart
-                    onProfileClick = { navController.navigate("profile") } // Navigasi ke Profile
+                    onCartClick = { navController.navigate("cart") },
+                    onProfileClick = { navController.navigate("profile") },
+                    viewModel = homeViewModel // Gunakan instance yang sama
                 )
             }
             composable("profile") {
@@ -122,11 +115,9 @@ fun MainAppScreen(
             }
 
             composable("wishlist") {
-                // IMPLEMENTASI BARU
                 WishlistScreen(
                     userData = userData,
                     onBackClick = {
-                        // Jika ingin back ke Home atau Cart, bisa sesuaikan
                         navController.navigate("home") {
                             popUpTo("home") { inclusive = true }
                         }
@@ -134,18 +125,31 @@ fun MainAppScreen(
                     onProductClick = { product ->
                         selectedProduct = product
                         showDetailSheet = true
-                    }
+                    },
+                    // FIX: Tambahkan parameter navigasi Cart
+                    onCartClick = { navController.navigate("cart") }
                 )
             }
         }
 
+        // Logic Modal Sheet
         if (showDetailSheet && selectedProduct != null) {
             ModalBottomSheet(
                 onDismissRequest = { showDetailSheet = false },
                 sheetState = sheetState
             ) {
+                // Cek status wishlist produk yang dipilih
+                val isWishlisted = homeUiState.wishlistProductIds.contains(selectedProduct!!.id)
+
                 ProductDetailSheet(
                     product = selectedProduct!!,
+                    isWishlisted = isWishlisted, // FIX: Kirim status wishlist
+                    onWishlistToggle = {
+                        // FIX: Logic Toggle Wishlist di dalam Modal
+                        if (userData != null) {
+                            homeViewModel.toggleWishlist(userData.userId, selectedProduct!!.id)
+                        }
+                    },
                     onAddToCart = { quantity ->
                         if (userData != null) {
                             cartViewModel.addToCart(userData.userId, selectedProduct!!, quantity) {

@@ -21,8 +21,13 @@ data class HomeUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val wishlistProductIds: Set<Int> = emptySet(),
-    val searchQuery: String = "" // Tambahkan Search Query
+    val searchQuery: String = ""
 )
+
+// Enum untuk Opsi Sorting
+enum class SortOption {
+    NAME_ASC, NAME_DESC, PRICE_ASC, PRICE_DESC
+}
 
 class HomeViewModel : ViewModel() {
     private val api = ProductApi.create()
@@ -32,10 +37,13 @@ class HomeViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
-    // Backup data mentah untuk keperluan filter/search
     private var allProducts: List<Product> = emptyList()
 
     var selectedCategory by mutableStateOf<String?>(null)
+        private set
+
+    // State untuk Sorting
+    var selectedSortOption by mutableStateOf<SortOption?>(null)
         private set
 
     fun loadData(userId: String) {
@@ -50,12 +58,13 @@ class HomeViewModel : ViewModel() {
                 val products = productsDeferred.await()
                 val wishlistIds = wishlistDeferred.await()
 
-                // Simpan ke backup
                 allProducts = products
 
                 _uiState.value = HomeUiState(
                     products = products,
-                    categories = listOf("All") + categories,
+                    // FIX: Hapus manual "All" disini karena UI sudah menambahkannya,
+                    // atau biarkan list murni dari API agar UI yang mengatur chip "All"
+                    categories = categories,
                     wishlistProductIds = wishlistIds,
                     isLoading = false
                 )
@@ -68,20 +77,27 @@ class HomeViewModel : ViewModel() {
         }
     }
 
-    // --- FITUR SEARCH DIKEMBALIKAN ---
     fun onSearchQueryChanged(query: String) {
         _uiState.value = _uiState.value.copy(searchQuery = query)
         applyFilters()
     }
 
     fun selectCategory(category: String?) {
+        // Jika category "All" atau null, set null
         selectedCategory = if (category == "All") null else category
+        applyFilters()
+    }
+
+    // Fungsi untuk mengubah opsi sort
+    fun updateSortOption(option: SortOption) {
+        selectedSortOption = option
         applyFilters()
     }
 
     private fun applyFilters() {
         val query = _uiState.value.searchQuery
         val category = selectedCategory
+        val sort = selectedSortOption
 
         var filteredList = allProducts
 
@@ -94,6 +110,16 @@ class HomeViewModel : ViewModel() {
         if (query.isNotEmpty()) {
             filteredList = filteredList.filter {
                 it.title.contains(query, ignoreCase = true)
+            }
+        }
+
+        // 3. Sorting (Asc/Desc)
+        if (sort != null) {
+            filteredList = when (sort) {
+                SortOption.NAME_ASC -> filteredList.sortedBy { it.title }
+                SortOption.NAME_DESC -> filteredList.sortedByDescending { it.title }
+                SortOption.PRICE_ASC -> filteredList.sortedBy { it.price }
+                SortOption.PRICE_DESC -> filteredList.sortedByDescending { it.price }
             }
         }
 

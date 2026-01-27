@@ -1,6 +1,10 @@
 package com.example.uasecom.presentation.cart
 
+import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -17,13 +21,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.uasecom.data.UserData
 import com.example.uasecom.data.model.CartItem
+import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,7 +59,7 @@ fun CartScreen(
             )
         }
     ) { paddingValues ->
-        if (isLoading) {
+        if (isLoading && cartItems.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
@@ -72,37 +80,11 @@ fun CartScreen(
                     key = { it.productId }
                 ) { item ->
 
-                    // --- UPDATE DISINI: Menggunakan SwipeToDismissBox ---
-
-                    val dismissState = rememberSwipeToDismissBoxState(
-                        confirmValueChange = {
-                            if (it == SwipeToDismissBoxValue.EndToStart) {
-                                userData?.userId?.let { uid ->
-                                    viewModel.deleteItem(uid, item.productId)
-                                }
-                                true
-                            } else {
-                                false
-                            }
-                        }
-                    )
-
-                    SwipeToDismissBox(
-                        state = dismissState,
-                        backgroundContent = {
-                            val color = Color.Red
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(color, RoundedCornerShape(12.dp))
-                                    .padding(end = 20.dp),
-                                contentAlignment = Alignment.CenterEnd
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Delete,
-                                    contentDescription = "Delete",
-                                    tint = Color.White
-                                )
+                    // MENGGUNAKAN SWIPE TO REVEAL YANG SAMA DENGAN WISHLIST
+                    SwipeToRevealCartItem(
+                        onDelete = {
+                            userData?.userId?.let { uid ->
+                                viewModel.deleteItem(uid, item.productId)
                             }
                         },
                         content = {
@@ -111,11 +93,72 @@ fun CartScreen(
                                 onIncrease = { userData?.userId?.let { uid -> viewModel.increaseQuantity(uid, item) } },
                                 onDecrease = { userData?.userId?.let { uid -> viewModel.decreaseQuantity(uid, item) } }
                             )
-                        },
-                        enableDismissFromStartToEnd = false // Hanya geser kanan ke kiri
+                        }
                     )
                 }
             }
+        }
+    }
+}
+
+// Komponen Geser (Sama logic dengan Wishlist)
+@Composable
+fun SwipeToRevealCartItem(
+    onDelete: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    val density = LocalDensity.current
+    val deleteButtonSize = 80.dp
+    val deleteButtonSizePx = with(density) { deleteButtonSize.toPx() }
+
+    val offsetX = remember { Animatable(0f) }
+    val scope = rememberCoroutineScope()
+
+    Box(
+        modifier = Modifier.fillMaxWidth(),
+        contentAlignment = Alignment.CenterEnd
+    ) {
+        // Tombol Trash (Layer Bawah)
+        Box(
+            modifier = Modifier
+                .width(deleteButtonSize)
+                .fillMaxHeight()
+                .padding(start = 16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            FilledIconButton(
+                onClick = onDelete,
+                colors = IconButtonDefaults.filledIconButtonColors(containerColor = Color.Red),
+                modifier = Modifier.size(56.dp),
+                shape = RoundedCornerShape(12.dp) // KOTAK ROUNDED
+            ) {
+                Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.White)
+            }
+        }
+
+        // Konten Utama (Layer Atas)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .offset { IntOffset(offsetX.value.roundToInt(), 0) }
+                .draggable(
+                    state = rememberDraggableState { delta ->
+                        scope.launch {
+                            val target = (offsetX.value + delta).coerceIn(-deleteButtonSizePx, 0f)
+                            offsetX.snapTo(target)
+                        }
+                    },
+                    orientation = Orientation.Horizontal,
+                    onDragStopped = {
+                        if (offsetX.value < -deleteButtonSizePx / 2) {
+                            offsetX.animateTo(-deleteButtonSizePx)
+                        } else {
+                            offsetX.animateTo(0f)
+                        }
+                    }
+                )
+        ) {
+            content()
         }
     }
 }

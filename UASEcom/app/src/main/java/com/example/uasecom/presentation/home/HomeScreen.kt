@@ -10,7 +10,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -39,85 +41,152 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsState()
     val selectedCategory = viewModel.selectedCategory
 
+    // State untuk Modal Filter
+    var showFilterDialog by remember { mutableStateOf(false) }
+
     LaunchedEffect(userData?.userId) {
         userData?.userId?.let { userId ->
             viewModel.loadData(userId)
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        if (uiState.isLoading) {
-            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-        } else if (uiState.error != null) {
-            Text(
-                text = uiState.error!!,
-                color = Color.Red,
-                modifier = Modifier.align(Alignment.Center)
-            )
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 16.dp)
+    // Modal Filter
+    if (showFilterDialog) {
+        FilterModal(
+            currentSort = viewModel.selectedSortOption,
+            onApply = { option ->
+                viewModel.updateSortOption(option)
+                showFilterDialog = false
+            },
+            onDismiss = { showFilterDialog = false }
+        )
+    }
+
+    Scaffold(
+        topBar = {
+            // Header Welcome Back + Cart Button
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // 1. SEARCH BAR (Dikembalikan)
-                item {
-                    OutlinedTextField(
-                        value = uiState.searchQuery,
-                        onValueChange = viewModel::onSearchQueryChanged,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        placeholder = { Text("Search products...") },
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                        shape = RoundedCornerShape(12.dp),
-                        singleLine = true
-                    )
-                }
-
-                // 2. Banner DIHAPUS sesuai permintaan
-
-                item {
-                    CategoryChipsSection(
-                        categories = uiState.categories,
-                        selectedCategory = selectedCategory,
-                        onCategorySelected = viewModel::selectCategory
-                    )
-                }
-
-                item {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = if (selectedCategory == null) "All Products" else selectedCategory!!.capitalize(),
+                        text = "Welcome Back,",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.Gray
+                    )
+                    Text(
+                        text = userData?.username ?: "User",
                         style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        fontWeight = FontWeight.Bold
                     )
                 }
 
-                item {
-                    FlowRow(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp),
-                        maxItemsInEachRow = 2,
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        val itemWidth = (androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp.dp - 48.dp) / 2
+                // Button Cart di Ujung Kanan
+                IconButton(
+                    onClick = onCartClick,
+                    modifier = Modifier
+                        .background(Color(0xFFF0F0F0), RoundedCornerShape(12.dp))
+                        .size(48.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ShoppingCart,
+                        contentDescription = "Cart",
+                        tint = Color.Black
+                    )
+                }
+            }
+        }
+    ) { paddingValues ->
+        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+            if (uiState.isLoading) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            } else if (uiState.error != null) {
+                Text(
+                    text = uiState.error!!,
+                    color = Color.Red,
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = 16.dp)
+                ) {
+                    // 1. SEARCH BAR & FILTER
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            OutlinedTextField(
+                                value = uiState.searchQuery,
+                                onValueChange = viewModel::onSearchQueryChanged,
+                                modifier = Modifier.weight(1f),
+                                placeholder = { Text("Search products...") },
+                                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                                shape = RoundedCornerShape(12.dp),
+                                singleLine = true
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            // Tombol Filter
+                            FilledTonalIconButton(
+                                onClick = { showFilterDialog = true },
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.size(56.dp)
+                            ) {
+                                Icon(Icons.Default.FilterList, contentDescription = "Filter")
+                            }
+                        }
+                    }
 
-                        uiState.products.forEach { product ->
-                            val isWishlisted = uiState.wishlistProductIds.contains(product.id)
+                    item {
+                        CategoryChipsSection(
+                            categories = uiState.categories,
+                            selectedCategory = selectedCategory,
+                            onCategorySelected = viewModel::selectCategory
+                        )
+                    }
 
-                            Box(modifier = Modifier.width(itemWidth)) {
-                                ProductItemRedesigned(
-                                    product = product,
-                                    isWishlisted = isWishlisted,
-                                    onClick = { onProductClick(product) },
-                                    onWishlistToggle = {
-                                        userData?.userId?.let { userId ->
-                                            viewModel.toggleWishlist(userId, product.id)
+                    item {
+                        Text(
+                            text = if (selectedCategory == null) "All Products" else selectedCategory!!.capitalize(),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                    }
+
+                    item {
+                        FlowRow(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp),
+                            maxItemsInEachRow = 2,
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            val itemWidth = (androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp.dp - 48.dp) / 2
+
+                            uiState.products.forEach { product ->
+                                val isWishlisted = uiState.wishlistProductIds.contains(product.id)
+
+                                Box(modifier = Modifier.width(itemWidth)) {
+                                    ProductItemRedesigned(
+                                        product = product,
+                                        isWishlisted = isWishlisted,
+                                        onClick = { onProductClick(product) },
+                                        onWishlistToggle = {
+                                            userData?.userId?.let { userId ->
+                                                viewModel.toggleWishlist(userId, product.id)
+                                            }
                                         }
-                                    }
-                                )
+                                    )
+                                }
                             }
                         }
                     }
@@ -127,7 +196,58 @@ fun HomeScreen(
     }
 }
 
-// Pastikan fungsi ini bisa diakses publik (tidak private) agar WishlistScreen bisa pakai
+// Komponen Modal Filter
+@Composable
+fun FilterModal(
+    currentSort: SortOption?,
+    onApply: (SortOption) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var selectedOption by remember { mutableStateOf(currentSort ?: SortOption.NAME_ASC) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Sort Products") },
+        text = {
+            Column {
+                SortOption.values().forEach { option ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { selectedOption = option }
+                            .padding(vertical = 8.dp)
+                    ) {
+                        RadioButton(
+                            selected = (option == selectedOption),
+                            onClick = { selectedOption = option }
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = when(option) {
+                                SortOption.NAME_ASC -> "Name (A-Z)"
+                                SortOption.NAME_DESC -> "Name (Z-A)"
+                                SortOption.PRICE_ASC -> "Price (Low to High)"
+                                SortOption.PRICE_DESC -> "Price (High to Low)"
+                            }
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = { onApply(selectedOption) }) {
+                Text("Apply")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
 @Composable
 fun ProductItemRedesigned(
     product: Product,
@@ -151,7 +271,8 @@ fun ProductItemRedesigned(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(150.dp)
-                        .background(Color.White),
+                        .background(Color.White)
+                        .padding(8.dp),
                     contentScale = ContentScale.Fit
                 )
                 Column(modifier = Modifier.padding(12.dp)) {
@@ -219,7 +340,8 @@ fun CategoryChipsSection(
                 )
             )
         }
-        items(categories) { category ->
+
+        items(categories.filter { it != "All" }) { category ->
             FilterChip(
                 selected = category == selectedCategory,
                 onClick = { onCategorySelected(category) },
