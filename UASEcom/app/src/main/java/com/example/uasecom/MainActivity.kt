@@ -18,6 +18,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.uasecom.data.GoogleAuthUIClient
+import com.example.uasecom.presentation.MainAppScreen
+import com.example.uasecom.presentation.home.HomeScreen
 import com.example.uasecom.presentation.profile.ProfileScreen
 import com.example.uasecom.presentation.sign_in.SignInScreen
 import com.example.uasecom.presentation.sign_in.SignInViewModel
@@ -42,28 +44,36 @@ class MainActivity : ComponentActivity() {
                 ) {
                     val navController = rememberNavController()
 
-                    NavHost( navController = navController, startDestination = "sign_in"){
-                        composable("sign_in"){
+                    NavHost(navController = navController, startDestination = "sign_in") {
+                        composable("sign_in") {
                             val viewModel = SignInViewModel()
                             val state by viewModel.state.collectAsStateWithLifecycle()
 
+                            // UBAH TUJUAN: Jika sudah login, ke "home"
                             LaunchedEffect(key1 = Unit) {
                                 if (googleAuthUIClient.getSignedInUser() != null) {
-                                    navController.navigate("profile")
+                                    navController.navigate("home") {
+                                        popUpTo("sign_in") { inclusive = true } // Agar tidak bisa back ke login
+                                    }
                                 }
                             }
+
+                            // UBAH TUJUAN: Jika sukses login, ke "home"
                             LaunchedEffect(key1 = state.isSignInSuccessful) {
-                                if (state.isSignInSuccessful){
+                                if (state.isSignInSuccessful) {
                                     Toast.makeText(
                                         applicationContext,
                                         "Sign in successful",
                                         Toast.LENGTH_LONG
                                     ).show()
 
-                                    navController.navigate("profile")
+                                    navController.navigate("home") {
+                                        popUpTo("sign_in") { inclusive = true }
+                                    }
                                     viewModel.resetState()
                                 }
                             }
+
                             SignInScreen(
                                 state = state,
                                 onSignInClick = {
@@ -74,8 +84,9 @@ class MainActivity : ComponentActivity() {
                                 }
                             )
                         }
-                        composable("profile") {
-                            ProfileScreen(
+
+                        composable("home") {
+                            MainAppScreen(
                                 userData = googleAuthUIClient.getSignedInUser(),
                                 onSignOut = {
                                     lifecycleScope.launch {
@@ -85,7 +96,11 @@ class MainActivity : ComponentActivity() {
                                             "Signed out",
                                             Toast.LENGTH_LONG
                                         ).show()
-                                        navController.popBackStack()
+
+                                        // Kembali ke login dan hapus stack navigasi
+                                        navController.navigate("sign_in") {
+                                            popUpTo("home") { inclusive = true }
+                                        }
                                     }
                                 }
                             )
