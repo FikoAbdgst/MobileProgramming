@@ -1,6 +1,5 @@
 package com.example.uasecom.presentation.cart
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.uasecom.data.model.CartItem
@@ -41,20 +40,50 @@ class CartViewModel : ViewModel() {
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                Log.d("CartDebug", "Mencoba input: User $userId, Product ${product.title}, Qty $quantity")
-
                 repository.addToCart(userId, product, quantity)
-
-                Log.d("CartDebug", "Berhasil input ke Firestore!")
-
-                // Reload cart agar data sinkron
                 loadCart(userId)
                 onSuccess()
             } catch (e: Exception) {
                 e.printStackTrace()
-                Log.e("CartDebug", "Gagal input: ${e.message}") // Cek Logcat bagian Error untuk pesan ini
             } finally {
                 _isLoading.value = false
+            }
+        }
+    }
+
+    fun increaseQuantity(userId: String, item: CartItem) {
+        viewModelScope.launch {
+            try {
+                val newQty = item.quantity + 1
+                repository.updateCartItemQuantity(userId, item.productId, newQty, item.productPrice)
+                loadCart(userId) // Reload UI
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun decreaseQuantity(userId: String, item: CartItem) {
+        if (item.quantity <= 1) return // Cegah kurang dari 1
+
+        viewModelScope.launch {
+            try {
+                val newQty = item.quantity - 1
+                repository.updateCartItemQuantity(userId, item.productId, newQty, item.productPrice)
+                loadCart(userId)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun deleteItem(userId: String, productId: Int) {
+        viewModelScope.launch {
+            try {
+                repository.deleteCartItem(userId, productId)
+                loadCart(userId)
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
     }

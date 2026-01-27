@@ -33,6 +33,7 @@ import com.example.uasecom.presentation.cart.CartViewModel
 import com.example.uasecom.presentation.home.HomeScreen
 import com.example.uasecom.presentation.home.ProductDetailSheet
 import com.example.uasecom.presentation.profile.ProfileScreen
+import com.example.uasecom.presentation.wishtlist.WishlistScreen
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -56,11 +57,9 @@ fun MainAppScreen(
     val cartTotal by cartViewModel.totalPrice.collectAsState()
 
     // Logika Visibilitas Navbar
-    // Sembunyikan navbar jika sedang di halaman Cart atau jika Modal Detail sedang terbuka
     val isBottomBarVisible = currentRoute != "cart" && !showDetailSheet
 
     Scaffold(
-        // TOP BAR: Icon Cart hanya muncul di Home/Profile
         topBar = {
             if (currentRoute != "cart") {
                 CenterAlignedTopAppBar(
@@ -73,17 +72,13 @@ fun MainAppScreen(
                 )
             }
         },
-
-        // BOTTOM BAR (Kondisional)
         bottomBar = {
             if (currentRoute == "cart") {
-                // KONDISI 2: Tampilan Bottom Bar khusus Cart (Total + Order Now)
                 CartBottomBar(
                     total = cartTotal,
                     onOrderClick = { /* Logic WhatsApp Nanti */ }
                 )
             } else if (isBottomBarVisible) {
-                // KONDISI 1: Floating Navbar (Hanya muncul jika modal tutup & bukan di cart)
                 FloatingBottomNavBar(
                     currentRoute = currentRoute,
                     onNavigate = { route ->
@@ -104,13 +99,15 @@ fun MainAppScreen(
             modifier = Modifier.padding(innerPadding)
         ) {
             composable("home") {
-                // HomeScreen sekarang perlu menerima callback ketika produk diklik
+                // PERBAIKAN DI SINI: Menambahkan argumen yang kurang
                 HomeScreen(
                     userData = userData,
                     onProductClick = { product ->
                         selectedProduct = product
                         showDetailSheet = true
-                    }
+                    },
+                    onCartClick = { navController.navigate("cart") }, // Navigasi ke Cart
+                    onProfileClick = { navController.navigate("profile") } // Navigasi ke Profile
                 )
             }
             composable("profile") {
@@ -121,6 +118,23 @@ fun MainAppScreen(
                     userData = userData,
                     onBackClick = { navController.popBackStack() },
                     viewModel = cartViewModel
+                )
+            }
+
+            composable("wishlist") {
+                // IMPLEMENTASI BARU
+                WishlistScreen(
+                    userData = userData,
+                    onBackClick = {
+                        // Jika ingin back ke Home atau Cart, bisa sesuaikan
+                        navController.navigate("home") {
+                            popUpTo("home") { inclusive = true }
+                        }
+                    },
+                    onProductClick = { product ->
+                        selectedProduct = product
+                        showDetailSheet = true
+                    }
                 )
             }
         }
@@ -140,9 +154,6 @@ fun MainAppScreen(
                                     showDetailSheet = false
                                 }
                             }
-                        } else {
-                            // Tambahkan ini untuk cek apakah user terdeteksi login
-                            println("Error: User Data is Null!")
                         }
                     }
                 )
@@ -164,7 +175,6 @@ fun FloatingBottomNavBar(
         containerColor = Color.White,
         tonalElevation = 5.dp
     ) {
-        // 1. Home
         NavigationBarItem(
             icon = { Icon(if (currentRoute == "home") Icons.Filled.Home else Icons.Outlined.Home, null) },
             label = { Text("Home") },
@@ -173,7 +183,6 @@ fun FloatingBottomNavBar(
             colors = NavigationBarItemDefaults.colors(indicatorColor = MaterialTheme.colorScheme.surfaceVariant)
         )
 
-        // 2. Wishlist (TAMBAHKAN INI KEMBALI)
         NavigationBarItem(
             icon = { Icon(if (currentRoute == "wishlist") Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder, null) },
             label = { Text("Wishlist") },
@@ -182,7 +191,6 @@ fun FloatingBottomNavBar(
             colors = NavigationBarItemDefaults.colors(indicatorColor = MaterialTheme.colorScheme.surfaceVariant)
         )
 
-        // 3. Profile
         NavigationBarItem(
             icon = { Icon(if (currentRoute == "profile") Icons.Filled.Person else Icons.Outlined.Person, null) },
             label = { Text("Profile") },
@@ -192,7 +200,7 @@ fun FloatingBottomNavBar(
         )
     }
 }
-// Komponen Bottom Bar khusus Cart
+
 @Composable
 fun CartBottomBar(
     total: Double,

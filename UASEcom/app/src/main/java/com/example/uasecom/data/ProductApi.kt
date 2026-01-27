@@ -4,6 +4,7 @@ import com.example.uasecom.data.model.Product
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.GET
+import retrofit2.http.Path // Jangan lupa import ini
 
 interface ProductApi {
     @GET("products")
@@ -11,6 +12,9 @@ interface ProductApi {
 
     @GET("products/categories")
     suspend fun getCategories(): List<String>
+
+    @GET("products/category/{categoryName}")
+    suspend fun getProductsByCategory(@Path("categoryName") categoryName: String): List<Product>
 
     companion object {
         const val BASE_URL = "https://fakestoreapi.com/"

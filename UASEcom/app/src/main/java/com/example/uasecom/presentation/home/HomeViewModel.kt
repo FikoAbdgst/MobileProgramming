@@ -1,73 +1,96 @@
 package com.example.uasecom.presentation.home
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.uasecom.data.ProductApi
 import com.example.uasecom.data.model.Product
 import com.example.uasecom.data.repository.ProductRepository
+import com.example.uasecom.data.repository.WishlistRepository
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class HomeViewModel(private val repository: ProductRepository) : ViewModel() {
+data class HomeUiState(
+    val products: List<Product> = emptyList(),
+    val categories: List<String> = emptyList(),
+    val isLoading: Boolean = false,
+    val error: String? = null,
+    val wishlistProductIds: Set<Int> = emptySet(),
+    val searchQuery: String = "" // Tambahkan Search Query
+)
 
-    // State utama UI
+class HomeViewModel : ViewModel() {
+    private val api = ProductApi.create()
+    private val productRepository = ProductRepository(api)
+    private val wishlistRepository = WishlistRepository()
+
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
-    // Data mentah (backup untuk search/filter)
+    // Backup data mentah untuk keperluan filter/search
     private var allProducts: List<Product> = emptyList()
 
-    init {
-        fetchData()
-    }
+    var selectedCategory by mutableStateOf<String?>(null)
+        private set
 
-    private fun fetchData() {
+    fun loadData(userId: String) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
             try {
-                // Ambil data produk dan kategori secara bersamaan (async)
-                val products = repository.getProducts()
-                val categories = repository.getCategories()
+                val categoriesDeferred = async { productRepository.getCategories() }
+                val productsDeferred = async { productRepository.getProducts() }
+                val wishlistDeferred = async { wishlistRepository.getWishlistedProductIds(userId) }
 
+                val categories = categoriesDeferred.await()
+                val products = productsDeferred.await()
+                val wishlistIds = wishlistDeferred.await()
+
+                // Simpan ke backup
                 allProducts = products
 
-                _uiState.value = _uiState.value.copy(
+                _uiState.value = HomeUiState(
                     products = products,
-                    categories = listOf("All") + categories, // Tambah opsi "All"
+                    categories = listOf("All") + categories,
+                    wishlistProductIds = wishlistIds,
                     isLoading = false
                 )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    error = e.message,
+                    error = e.message ?: "An unknown error occurred",
                     isLoading = false
                 )
             }
         }
     }
 
+    // --- FITUR SEARCH DIKEMBALIKAN ---
     fun onSearchQueryChanged(query: String) {
         _uiState.value = _uiState.value.copy(searchQuery = query)
         applyFilters()
     }
 
-    fun onCategorySelected(category: String) {
-        _uiState.value = _uiState.value.copy(selectedCategory = category)
+    fun selectCategory(category: String?) {
+        selectedCategory = if (category == "All") null else category
         applyFilters()
     }
 
     private fun applyFilters() {
         val query = _uiState.value.searchQuery
-        val category = _uiState.value.selectedCategory
+        val category = selectedCategory
 
         var filteredList = allProducts
 
-        // Filter by Category
-        if (category != "All") {
+        // 1. Filter Category
+        if (category != null) {
             filteredList = filteredList.filter { it.category == category }
         }
 
-        // Filter by Search Query
+        // 2. Filter Search
         if (query.isNotEmpty()) {
             filteredList = filteredList.filter {
                 it.title.contains(query, ignoreCase = true)
@@ -76,14 +99,27 @@ class HomeViewModel(private val repository: ProductRepository) : ViewModel() {
 
         _uiState.value = _uiState.value.copy(products = filteredList)
     }
-}
 
-// Data class untuk menampung seluruh status layar Home
-data class HomeUiState(
-    val products: List<Product> = emptyList(),
-    val categories: List<String> = emptyList(),
-    val isLoading: Boolean = false,
-    val error: String? = null,
-    val searchQuery: String = "",
-    val selectedCategory: String = "All"
-)
+    fun toggleWishlist(userId: String, productId: Int) {
+        viewModelScope.launch {
+            val currentWishlist = _uiState.value.wishlistProductIds
+            val isCurrentlyWishlisted = currentWishlist.contains(productId)
+
+            try {
+                if (isCurrentlyWishlisted) {
+                    wishlistRepository.removeFromWishlist(userId, productId)
+                    _uiState.value = _uiState.value.copy(
+                        wishlistProductIds = currentWishlist - productId
+                    )
+                } else {
+                    wishlistRepository.addToWishlist(userId, productId)
+                    _uiState.value = _uiState.value.copy(
+                        wishlistProductIds = currentWishlist + productId
+                    )
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+}

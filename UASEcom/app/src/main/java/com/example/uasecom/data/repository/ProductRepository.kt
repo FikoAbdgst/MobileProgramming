@@ -11,4 +11,8 @@ class ProductRepository(private val api: ProductApi) {
     suspend fun getCategories(): List<String> {
         return api.getCategories()
     }
+
+    suspend fun getProductsByCategory(category: String): List<Product> {
+        return api.getProductsByCategory(category)
+    }
 }
