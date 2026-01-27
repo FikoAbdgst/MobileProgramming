@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "869309238161",
+    "project_id": "uasecom",
+    "storage_bucket": "uasecom.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:869309238161:android:3c866e4599869c8afce830",
+        "android_client_info": {
+          "package_name": "com.example.uasecom"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDiwuga44cCD4_r9N3W_mL9o5stob7zg9I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
