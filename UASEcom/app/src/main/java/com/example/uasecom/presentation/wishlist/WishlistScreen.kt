@@ -1,4 +1,4 @@
-package com.example.uasecom.presentation.wishtlist
+package com.example.uasecom.presentation.wishlist
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background
@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AddShoppingCart
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
@@ -31,6 +32,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.uasecom.data.UserData
 import com.example.uasecom.data.model.Product
+import com.example.uasecom.presentation.CartIconWithBadge
 import com.example.uasecom.presentation.wishlist.WishlistViewModel
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -42,6 +44,7 @@ fun WishlistScreen(
     onBackClick: () -> Unit,
     onProductClick: (Product) -> Unit,
     onCartClick: () -> Unit,
+    cartItemCount: Int,
     viewModel: WishlistViewModel = viewModel()
 ) {
     val wishlistItems by viewModel.wishlistItems.collectAsState()
@@ -54,23 +57,25 @@ fun WishlistScreen(
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("Wishlist", fontWeight = FontWeight.Bold) },
+            TopAppBar(
+                title = { Text("Wishlist") },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
-                    IconButton(onClick = onCartClick) {
-                        Icon(Icons.Default.ShoppingCart, contentDescription = "Cart")
-                    }
+                    // Panggil komponen Cart dengan Badge (gunakan komponen yang sama dengan HomeScreen)
+                    // Pastikan fungsi CartIconWithBadge sudah dibuat (lihat jawaban sebelumnya)
+                    CartIconWithBadge(
+                        itemCount = cartItemCount,
+                        onClick = onCartClick
+                    )
                 }
             )
         }
-    ) { padding ->
+    ) {padding ->
         Box(
             modifier = Modifier
                 .padding(padding)

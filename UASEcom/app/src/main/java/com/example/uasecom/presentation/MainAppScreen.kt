@@ -1,11 +1,17 @@
 package com.example.uasecom.presentation
 
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
@@ -16,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
@@ -33,7 +40,7 @@ import com.example.uasecom.presentation.home.HomeScreen
 import com.example.uasecom.presentation.home.HomeViewModel
 import com.example.uasecom.presentation.home.ProductDetailSheet
 import com.example.uasecom.presentation.profile.ProfileScreen
-import com.example.uasecom.presentation.wishtlist.WishlistScreen
+import com.example.uasecom.presentation.wishlist.WishlistScreen
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -42,130 +49,142 @@ fun MainAppScreen(
     userData: UserData?,
     onSignOut: () -> Unit,
     cartViewModel: CartViewModel = viewModel(),
-    homeViewModel: HomeViewModel = viewModel() // Tambahkan HomeViewModel
+    homeViewModel: HomeViewModel = viewModel()
 ) {
+    val context = LocalContext.current // Tambahkan ini untuk Intent WA
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    // State untuk HomeViewModel agar Modal tahu status wishlist
-    val homeUiState by homeViewModel.uiState.collectAsState()
+    LaunchedEffect(userData) {
+        if (userData != null) {
+            cartViewModel.loadCart(userData.userId)
+        }
+    }
 
-    // State untuk Modal Detail Product
+    val homeUiState by homeViewModel.uiState.collectAsState()
+    val cartItems by cartViewModel.cartItems.collectAsState()
+    val totalCartItems = cartItems.size
+    val cartTotal by cartViewModel.totalPrice.collectAsState()
+
     var selectedProduct by remember { mutableStateOf<Product?>(null) }
     var showDetailSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
-
-    // Ambil total harga untuk Bottom Bar Cart
-    val cartTotal by cartViewModel.totalPrice.collectAsState()
-
-    // Logika Visibilitas Navbar
     val isBottomBarVisible = currentRoute != "cart" && !showDetailSheet
 
-    Scaffold(
-        // TopBar DIHAPUS agar tidak Double (Karena Screen lain sudah punya TopBar sendiri)
-        bottomBar = {
-            if (currentRoute == "cart") {
-                CartBottomBar(
-                    total = cartTotal,
-                    onOrderClick = { /* Logic WhatsApp Nanti */ }
-                )
-            } else if (isBottomBarVisible) {
-                FloatingBottomNavBar(
-                    currentRoute = currentRoute,
-                    onNavigate = { route ->
-                        navController.navigate(route) {
-                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
+    Surface(
+        modifier = Modifier
+            .fillMaxSize()
+            .systemBarsPadding(),
+        color = MaterialTheme.colorScheme.background
+    ) {
+        Scaffold(
+            bottomBar = {
+                AnimatedVisibility(
+                    visible = isBottomBarVisible || currentRoute == "cart",
+                    enter = slideInVertically(initialOffsetY = { it }),
+                    exit = slideOutVertically(targetOffsetY = { it })
+                ) {
+                    if (currentRoute == "cart") {
+                        CartBottomBar(
+                            total = cartTotal,
+                            onOrderClick = {
+                                // Logika WhatsApp
+                                val phoneNumber = "62882001330851"
+                                val itemDetails = cartItems.joinToString(separator = "\n") { "- ${it.productName} (${it.quantity}x)" }
+                                val message = "Halo admin, saya ingin order:\n\n$itemDetails\n\nTotal: $${String.format("%.2f", cartTotal)}"
+                                val url = "https://api.whatsapp.com/send?phone=$phoneNumber&text=${Uri.encode(message)}"
+                                val intent = Intent(Intent.ACTION_VIEW).apply { data = Uri.parse(url) }
+                                try { context.startActivity(intent) } catch (e: Exception) { e.printStackTrace() }
+                            }
+                        )
+                    } else if (isBottomBarVisible) {
+                        FloatingBottomNavBar(
+                            currentRoute = currentRoute,
+                            onNavigate = { route ->
+                                navController.navigate(route) {
+                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            }
+                        )
                     }
-                )
+                }
             }
-        }
-    ) { innerPadding ->
-
-        NavHost(
-            navController = navController,
-            startDestination = "home",
-            modifier = Modifier.padding(innerPadding)
-        ) {
-            composable("home") {
-                HomeScreen(
-                    userData = userData,
-                    onProductClick = { product ->
-                        selectedProduct = product
-                        showDetailSheet = true
-                    },
-                    onCartClick = { navController.navigate("cart") },
-                    onProfileClick = { navController.navigate("profile") },
-                    viewModel = homeViewModel // Gunakan instance yang sama
-                )
-            }
-            composable("profile") {
-                ProfileScreen(userData = userData, onSignOut = onSignOut)
-            }
-            composable("cart") {
-                CartScreen(
-                    userData = userData,
-                    onBackClick = { navController.popBackStack() },
-                    viewModel = cartViewModel
-                )
-            }
-
-            composable("wishlist") {
-                WishlistScreen(
-                    userData = userData,
-                    onBackClick = {
-                        navController.navigate("home") {
-                            popUpTo("home") { inclusive = true }
-                        }
-                    },
-                    onProductClick = { product ->
-                        selectedProduct = product
-                        showDetailSheet = true
-                    },
-                    // FIX: Tambahkan parameter navigasi Cart
-                    onCartClick = { navController.navigate("cart") }
-                )
-            }
-        }
-
-        // Logic Modal Sheet
-        if (showDetailSheet && selectedProduct != null) {
-            ModalBottomSheet(
-                onDismissRequest = { showDetailSheet = false },
-                sheetState = sheetState
+        ) { innerPadding ->
+            NavHost(
+                navController = navController,
+                startDestination = "home",
+                modifier = Modifier.padding(innerPadding)
             ) {
-                // Cek status wishlist produk yang dipilih
-                val isWishlisted = homeUiState.wishlistProductIds.contains(selectedProduct!!.id)
+                composable("home") {
+                    HomeScreen(
+                        userData = userData,
+                        onProductClick = { product ->
+                            selectedProduct = product
+                            showDetailSheet = true
+                        },
+                        onCartClick = { navController.navigate("cart") },
+                        onProfileClick = { navController.navigate("profile") },
+                        viewModel = homeViewModel,
+                        cartItemCount = totalCartItems // Parameter ini harus ada di HomeScreen.kt
+                    )
+                }
+                composable("profile") {
+                    ProfileScreen(userData = userData, onSignOut = onSignOut)
+                }
+                composable("cart") {
+                    CartScreen(
+                        userData = userData,
+                        onBackClick = { navController.popBackStack() },
+                        viewModel = cartViewModel
+                    )
+                }
+                composable("wishlist") {
+                    WishlistScreen(
+                        userData = userData,
+                        onBackClick = {
+                            navController.navigate("home") { popUpTo("home") { inclusive = true } }
+                        },
+                        onProductClick = { product ->
+                            selectedProduct = product
+                            showDetailSheet = true
+                        },
+                        onCartClick = { navController.navigate("cart") },
+                        cartItemCount = totalCartItems // Parameter ini harus ada di WishlistScreen.kt
+                    )
+                }
+            }
 
-                ProductDetailSheet(
-                    product = selectedProduct!!,
-                    isWishlisted = isWishlisted, // FIX: Kirim status wishlist
-                    onWishlistToggle = {
-                        // FIX: Logic Toggle Wishlist di dalam Modal
-                        if (userData != null) {
-                            homeViewModel.toggleWishlist(userData.userId, selectedProduct!!.id)
-                        }
-                    },
-                    onAddToCart = { quantity ->
-                        if (userData != null) {
-                            cartViewModel.addToCart(userData.userId, selectedProduct!!, quantity) {
-                                scope.launch {
-                                    sheetState.hide()
-                                    showDetailSheet = false
+            // Logic Modal Sheet (Tetap sama)
+            if (showDetailSheet && selectedProduct != null) {
+                ModalBottomSheet(
+                    onDismissRequest = { showDetailSheet = false },
+                    sheetState = sheetState
+                ) {
+                    // ... isi modal tetap sama ...
+                    val isWishlisted = homeUiState.wishlistProductIds.contains(selectedProduct!!.id)
+                    ProductDetailSheet(
+                        product = selectedProduct!!,
+                        isWishlisted = isWishlisted,
+                        onWishlistToggle = {
+                            if (userData != null) homeViewModel.toggleWishlist(userData.userId, selectedProduct!!.id)
+                        },
+                        onAddToCart = { quantity ->
+                            if (userData != null) {
+                                cartViewModel.addToCart(userData.userId, selectedProduct!!, quantity) {
+                                    scope.launch { sheetState.hide(); showDetailSheet = false }
                                 }
                             }
                         }
-                    }
-                )
+                    )
+                }
             }
         }
     }
 }
-
 @Composable
 fun FloatingBottomNavBar(
     currentRoute: String?,
@@ -173,38 +192,41 @@ fun FloatingBottomNavBar(
 ) {
     NavigationBar(
         modifier = Modifier
-            .padding(16.dp)
-            .shadow(10.dp, RoundedCornerShape(24.dp))
-            .clip(RoundedCornerShape(24.dp)),
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .shadow(8.dp, RoundedCornerShape(20.dp)) // Kurangi shadow sedikit
+            .clip(RoundedCornerShape(20.dp))
+            .height(70.dp), // Set tinggi manual jika perlu agar lebih ramping
         containerColor = Color.White,
-        tonalElevation = 5.dp
+        tonalElevation = 3.dp
     ) {
-        NavigationBarItem(
-            icon = { Icon(if (currentRoute == "home") Icons.Filled.Home else Icons.Outlined.Home, null) },
-            label = { Text("Home") },
-            selected = currentRoute == "home",
-            onClick = { onNavigate("home") },
-            colors = NavigationBarItemDefaults.colors(indicatorColor = MaterialTheme.colorScheme.surfaceVariant)
+        val items = listOf(
+            Triple("home", Icons.Filled.Home, Icons.Outlined.Home),
+            Triple("wishlist", Icons.Filled.Favorite, Icons.Outlined.FavoriteBorder),
+            Triple("profile", Icons.Filled.Person, Icons.Outlined.Person)
         )
 
-        NavigationBarItem(
-            icon = { Icon(if (currentRoute == "wishlist") Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder, null) },
-            label = { Text("Wishlist") },
-            selected = currentRoute == "wishlist",
-            onClick = { onNavigate("wishlist") },
-            colors = NavigationBarItemDefaults.colors(indicatorColor = MaterialTheme.colorScheme.surfaceVariant)
-        )
-
-        NavigationBarItem(
-            icon = { Icon(if (currentRoute == "profile") Icons.Filled.Person else Icons.Outlined.Person, null) },
-            label = { Text("Profile") },
-            selected = currentRoute == "profile",
-            onClick = { onNavigate("profile") },
-            colors = NavigationBarItemDefaults.colors(indicatorColor = MaterialTheme.colorScheme.surfaceVariant)
-        )
+        items.forEach { (route, selectedIcon, unselectedIcon) ->
+            val isSelected = currentRoute == route
+            NavigationBarItem(
+                icon = {
+                    Icon(
+                        if (isSelected) selectedIcon else unselectedIcon,
+                        contentDescription = route,
+                        tint = if (isSelected) MaterialTheme.colorScheme.primary else Color.Gray
+                    )
+                },
+                label = { },
+                selected = isSelected,
+                onClick = { onNavigate(route) },
+                colors = NavigationBarItemDefaults.colors(
+                    indicatorColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f), // Warna indikator lebih soft
+                    selectedIconColor = MaterialTheme.colorScheme.primary,
+                    unselectedIconColor = Color.Gray
+                )
+            )
+        }
     }
 }
-
 @Composable
 fun CartBottomBar(
     total: Double,
@@ -236,6 +258,35 @@ fun CartBottomBar(
             ) {
                 Text("Order Now")
             }
+        }
+    }
+}
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CartIconWithBadge(
+    itemCount: Int,
+    onClick: () -> Unit
+) {
+    IconButton(onClick = onClick) {
+        BadgedBox(
+            badge = {
+                if (itemCount > 0) {
+                    Badge(
+                        containerColor = Color.Red, // Warna merah agar mencolok
+                        contentColor = Color.White
+                    ) {
+                        Text(
+                            text = if (itemCount > 99) "99+" else itemCount.toString(),
+                            fontSize = 10.sp
+                        )
+                    }
+                }
+            }
+        ) {
+            Icon(
+                imageVector = Icons.Filled.ShoppingCart, // Ganti dengan icon cart Anda
+                contentDescription = "Cart"
+            )
         }
     }
 }

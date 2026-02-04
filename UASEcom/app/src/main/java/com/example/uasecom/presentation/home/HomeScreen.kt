@@ -28,6 +28,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.uasecom.data.UserData
 import com.example.uasecom.data.model.Product
+import com.example.uasecom.presentation.CartIconWithBadge
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -36,6 +37,7 @@ fun HomeScreen(
     onProductClick: (Product) -> Unit,
     onCartClick: () -> Unit,
     onProfileClick: () -> Unit,
+    cartItemCount: Int,
     viewModel: HomeViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -64,41 +66,15 @@ fun HomeScreen(
 
     Scaffold(
         topBar = {
-            // Header Welcome Back + Cart Button
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Welcome Back,",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.Gray
-                    )
-                    Text(
-                        text = userData?.username ?: "User",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
+            TopAppBar(
+                title = { Text("E-Commerce") },
+                actions = {
+                    CartIconWithBadge(
+                        itemCount = cartItemCount,
+                        onClick = onCartClick
                     )
                 }
-
-                // Button Cart di Ujung Kanan
-                IconButton(
-                    onClick = onCartClick,
-                    modifier = Modifier
-                        .background(Color(0xFFF0F0F0), RoundedCornerShape(12.dp))
-                        .size(48.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ShoppingCart,
-                        contentDescription = "Cart",
-                        tint = Color.Black
-                    )
-                }
-            }
+            )
         }
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {

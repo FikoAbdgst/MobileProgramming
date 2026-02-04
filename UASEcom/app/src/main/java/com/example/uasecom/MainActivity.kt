@@ -23,6 +23,7 @@ import com.example.uasecom.presentation.home.HomeScreen
 import com.example.uasecom.presentation.profile.ProfileScreen
 import com.example.uasecom.presentation.sign_in.SignInScreen
 import com.example.uasecom.presentation.sign_in.SignInViewModel
+import com.example.uasecom.presentation.splash.SplashScreen
 import com.example.uasecom.ui.theme.UASEcomTheme
 import kotlinx.coroutines.launch
 
@@ -45,6 +46,13 @@ class MainActivity : ComponentActivity() {
                     val navController = rememberNavController()
 
                     NavHost(navController = navController, startDestination = "sign_in") {
+                        composable("splash") {
+                            SplashScreen (onNavigateToNext = {
+                                navController.navigate("sign_in") {
+                                    popUpTo("splash") { inclusive = true }
+                                }
+                            })
+                        }
                         composable("sign_in") {
                             val viewModel = SignInViewModel()
                             val state by viewModel.state.collectAsStateWithLifecycle()
